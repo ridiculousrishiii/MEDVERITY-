@@ -1,5 +1,5 @@
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body
 from core.logging import logger
 from services.pubmed_service import pubmed_service
 from services.europe_pmc_service import europe_pmc_service
@@ -7,6 +7,8 @@ from schemas.pubmed import PubMedSearchResponse
 from schemas.europe_pmc import EuropePMCSearchResponse
 from services.openfda_service import openfda_service
 from schemas.openfda import OpenFDASearchResponse
+from services.verification_service import verification_service
+from schemas.verification import VerificationRequest, VerificationResponse
 
 router = APIRouter()
 
@@ -140,8 +142,8 @@ async def search_openfda(
     )
 
     try:
-        response = await openfda_service.search_events(
-            drug_name=q,
+        response = await openfda_service.search_labels(
+            query=q,
             limit=capped_limit,
         )
 
@@ -173,4 +175,28 @@ async def search_openfda(
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred while querying OpenFDA.",
+        )
+
+
+@router.post(
+    "/verify",
+    response_model=VerificationResponse,
+    summary="Evidence Aggregator & Verification Pipeline",
+    description=(
+        "Verifies a medical claim by aggregating evidence from PubMed, Europe PMC, "
+        "and OpenFDA (if applicable). Returns a verified stance, confidence, and "
+        "structured evidence breakdown."
+    ),
+)
+async def verify_medical_claim(
+    request: VerificationRequest = Body(...)
+) -> VerificationResponse:
+    logger.info(f"Verification endpoint called | query='{request.query}' limit={request.limit_per_source}")
+    try:
+        return await verification_service.verify_claim(request)
+    except Exception as exc:
+        logger.exception(f"Unexpected error in verify_medical_claim: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while verifying the medical claim.",
         )

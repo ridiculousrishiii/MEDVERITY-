@@ -2,11 +2,13 @@ from utils.http_client import http_client
 from core.config import settings
 
 class OpenFDAService:
-    BASE_URL = "https://api.fda.gov/drug/event.json"
+    BASE_URL = "https://api.fda.gov/drug/label.json"
 
-    async def search_events(self, drug_name: str, limit: int = 10):
+    async def search_labels(self, query: str, limit: int = 10):
+        # OpenFDA full-text search
+        search_term = query.replace(' ', '+').replace('?', '')
         params = {
-            "search": f"patient.drug.medicinalproduct:{drug_name}",
+            "search": search_term,
             "limit": limit
         }
         if settings.OPENFDA_API_KEY:

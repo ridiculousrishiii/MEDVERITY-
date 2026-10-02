@@ -9,9 +9,10 @@ import { ConsensusMeter } from '../components/verification/ConsensusMeter';
 import { CitationList } from '../components/verification/CitationList';
 import { ClaimBreakdownView } from '../components/verification/ClaimBreakdownView';
 import { ClinicalNuanceCard } from '../components/verification/ClinicalNuanceCard';
-import { verificationService } from '../services/verificationService';
-import { VerificationResult } from '../types';
+import { EvidencePanel } from '../components/verification/EvidencePanel';
+import { verificationService, EnrichedVerificationResult } from '../services/verificationService';
 import { useToast } from '../context/ToastContext';
+import { AlertTriangle } from 'lucide-react';
 import {
   Sparkles,
   Link as LinkIcon,
@@ -37,7 +38,7 @@ export const VerifyPage: React.FC = () => {
   const [inputMode, setInputMode] = useState<'text' | 'url' | 'image'>('text');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<VerificationResult | null>(null);
+  const [result, setResult] = useState<EnrichedVerificationResult | null>(null);
   const [isSaved, setIsSaved] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -378,10 +379,19 @@ export const VerifyPage: React.FC = () => {
 
           {/* 12-column Analysis Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column (8 cols): Breakdown, Nuances, Citations */}
+            {/* Left Column (8 cols): Breakdown, Evidence, Citations */}
             <div className="lg:col-span-8 space-y-8">
               {/* Claim Sentence Breakdown */}
               <ClaimBreakdownView breakdown={result.claimBreakdown} />
+
+              {/* Real Evidence Panel from Backend */}
+              {result.isFromBackend && result.backendEvidence && (
+                <EvidencePanel
+                  supporting={result.backendEvidence.supporting}
+                  conflicting={result.backendEvidence.conflicting}
+                  neutral={result.backendEvidence.neutral}
+                />
+              )}
 
               {/* Citations & Evidence List */}
               <CitationList citations={result.citations} />
@@ -403,6 +413,23 @@ export const VerifyPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Medical Disclaimer */}
+          {result.isFromBackend && result.backendDisclaimer && (
+            <div className="p-4 sm:p-5 rounded-xl bg-amber-50/60 border border-amber-200/80 shadow-soft">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 font-mono mb-1">
+                    Medical Disclaimer
+                  </h4>
+                  <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
+                    {result.backendDisclaimer}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
